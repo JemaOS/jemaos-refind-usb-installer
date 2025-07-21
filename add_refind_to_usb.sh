@@ -571,6 +571,15 @@ else
     ICON_PATH="icons"
 fi
 
+# Copy JemaOS icon to icons directory (works for both custom themes and default icons)
+JEMAOS_ICON_SOURCE="$REFIND_TEMPLATES_DIR/os_jemaos.png"
+if [ -f "$JEMAOS_ICON_SOURCE" ]; then
+    echo "📋 Copying JemaOS icon to icons directory..."
+    cp "$JEMAOS_ICON_SOURCE" "$REFIND_MOUNT_POINT/EFI/BOOT/icons/os_jemaos.png"
+    echo "✅ JemaOS icon copied to icons directory"
+else
+    echo "⚠️  JemaOS icon not found at: $JEMAOS_ICON_SOURCE"
+fi
 
  
 # =============================================================================

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Copyright (c) 2025 Jema Technology.
 # =============================================================================
 # rEFInd USB Installation Script for JemaOS
 # =============================================================================
@@ -9,8 +10,8 @@
 
 # Configuration Variables (Edit these as needed)
 # =============================================================================
-DEBUG_MODE=1  # Set to 1 to enable debug mode (preserve $WORK_DIR and copy partitions)
-REFIND_LOG_LEVEL=4  # Set log level (0=silent, 1=error, 2=warning, 3=info, 4=verbose)
+DEBUG_MODE=0  # Set to 1 to enable debug mode (preserve $WORK_DIR and copy partitions)
+REFIND_LOG_LEVEL=0  # Set log level (0=silent, 1=error, 2=warning, 3=info, 4=verbose)
 
 REFIND_VERSION="0.14.2"
 REFIND_DOWNLOAD_URL="https://netix.dl.sourceforge.net/project/refind/${REFIND_VERSION}/refind-bin-${REFIND_VERSION}.zip"

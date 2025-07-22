@@ -25,7 +25,7 @@ THEME_REPOSITORY="https://github.com/Pr0cella/rEFInd-glassy.git"
 
 
 
-REFIND_TIMEOUT=-1
+REFIND_TIMEOUT=40
 
 # rEFInd partition size in MB (will be automatically converted to sectors)
 # REFIND_PARTITION_SIZE_MB=64  # Size in MB
@@ -173,7 +173,7 @@ cleanup() {
     # If we encountered the partition table error, provide guidance
     if [ "${PARTITION_TABLE_ERROR:-0}" -eq 1 ]; then
         echo ""
-        echo "🔧 PARTITION TABLE UPDATE ISSUE DETECTED:"
+        echo "❌🔧 PARTITION TABLE UPDATE ISSUE DETECTED:"
         echo "=================================================="
         echo "The partition was created but the kernel couldn't be informed of the change."
         echo "This usually happens when:"

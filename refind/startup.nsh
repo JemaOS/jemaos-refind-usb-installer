@@ -1,0 +1,3 @@
+@echo -off
+echo Loading rEFInd Boot Manager...
+\EFI\BOOT\bootx64.efi

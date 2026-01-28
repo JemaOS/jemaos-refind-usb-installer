@@ -2,6 +2,10 @@
 
 A comprehensive script to add the rEFInd bootloader to JemaOS USB devices, enabling multi-boot capabilities and improved boot management.
 
+## how to use 
+1. Flash with usb with cros_sdk -> Flash command 
+2. clone this script run the script `add_refind_to_usb.sh` 
+
 ## Overview
 
 This script installs rEFInd bootloader on a USB device that already has JemaOS flashed, creating a new 13th partition for rEFInd and configuring automatic detection of installed operating systems plus JemaOS from the USB device.

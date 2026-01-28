@@ -13,6 +13,11 @@
 DEBUG_MODE=0  # Set to 1 to enable debug mode (preserve $WORK_DIR and copy partitions)
 REFIND_LOG_LEVEL=0  # Set log level (0=silent, 1=error, 2=warning, 3=info, 4=verbose)
 
+# GRUB Timeout Configuration
+# Set GRUB_TIMEOUT_MODE to true to modify GRUB timeout, false to leave unchanged
+GRUB_TIMEOUT_MODE=false
+GRUB_TIMEOUT_VALUE=20  # Timeout value in seconds (0 = instant boot, no menu)
+
 REFIND_VERSION="0.14.2"
 REFIND_DOWNLOAD_URL="https://netix.dl.sourceforge.net/project/refind/${REFIND_VERSION}/refind-bin-${REFIND_VERSION}.zip"
 
@@ -267,56 +272,60 @@ else
 fi
 
 # =============================================================================
-# Step 3: Update GRUB configuration in partition 12 (set timeout to 0)
+# Step 3: Update GRUB configuration in partition 12 (set timeout based on config)
 # =============================================================================
-echo "⚙️  Updating GRUB configuration in partition 12..."
+if [ "$GRUB_TIMEOUT_MODE" = "true" ]; then
+    echo "⚙️  Updating GRUB configuration in partition 12 (timeout=${GRUB_TIMEOUT_VALUE}s)..."
 
-# Mount the JemaOS EFI partition (partition 12)
-JEMAOS_MOUNT_POINT="$MOUNT_DIR/jemaos"
-mkdir -p "$JEMAOS_MOUNT_POINT"
-mount "$CHROMEOS_EFI_PARTITION" "$JEMAOS_MOUNT_POINT" || {
-    echo "⚠️  Warning: Failed to mount JemaOS EFI partition"
-    echo "💡 Continuing without GRUB configuration update"
-}
+    # Mount the JemaOS EFI partition (partition 12)
+    JEMAOS_MOUNT_POINT="$MOUNT_DIR/jemaos"
+    mkdir -p "$JEMAOS_MOUNT_POINT"
+    mount "$CHROMEOS_EFI_PARTITION" "$JEMAOS_MOUNT_POINT" || {
+        echo "⚠️  Warning: Failed to mount JemaOS EFI partition"
+        echo "💡 Continuing without GRUB configuration update"
+    }
 
-if mountpoint -q "$JEMAOS_MOUNT_POINT" 2>/dev/null; then
-    # Check if grub.cfg exists
-    GRUB_CONFIG_PATH="$JEMAOS_MOUNT_POINT/efi/boot/grub.cfg"
-    if [ -f "$GRUB_CONFIG_PATH" ]; then
-        echo "📋 Found GRUB configuration: $GRUB_CONFIG_PATH"
-        
-        # Show current timeout setting
-        echo "📋 Current timeout setting:"
-        grep "^set timeout=" "$GRUB_CONFIG_PATH" || echo "   No timeout setting found"
-        
-        # Update any timeout value to 0 (handles empty values, numbers, etc.)
-        if grep -q "^set timeout=" "$GRUB_CONFIG_PATH"; then
-            sed -i 's/^set timeout=.*/set timeout=0/' "$GRUB_CONFIG_PATH"
-            echo "✅ Updated GRUB timeout to 0 seconds"
+    if mountpoint -q "$JEMAOS_MOUNT_POINT" 2>/dev/null; then
+        # Check if grub.cfg exists
+        GRUB_CONFIG_PATH="$JEMAOS_MOUNT_POINT/efi/boot/grub.cfg"
+        if [ -f "$GRUB_CONFIG_PATH" ]; then
+            echo "📋 Found GRUB configuration: $GRUB_CONFIG_PATH"
+            
+            # Show current timeout setting
+            echo "📋 Current timeout setting:"
+            grep "^set timeout=" "$GRUB_CONFIG_PATH" || echo "   No timeout setting found"
+            
+            # Update timeout value to configured value
+            if grep -q "^set timeout=" "$GRUB_CONFIG_PATH"; then
+                sed -i "s/^set timeout=.*/set timeout=$GRUB_TIMEOUT_VALUE/" "$GRUB_CONFIG_PATH"
+                echo "✅ Updated GRUB timeout to $GRUB_TIMEOUT_VALUE seconds"
+            else
+                echo "⚠️  No timeout setting found in grub.cfg"
+            fi
+            
+            # Show updated timeout setting
+            echo "📋 Updated timeout setting:"
+            grep "^set timeout=" "$GRUB_CONFIG_PATH" || echo "   No timeout setting found"
+            
         else
-            echo "⚠️  No timeout setting found in grub.cfg"
+            echo "⚠️  GRUB configuration not found: $GRUB_CONFIG_PATH"
+            echo "💡 Expected path: /efi/boot/grub.cfg"
+            echo "📋 Available files in /efi/boot/:"
+            ls -la "$JEMAOS_MOUNT_POINT/efi/boot/" 2>/dev/null || echo "   Directory not found"
         fi
         
-        # Show updated timeout setting
-        echo "📋 Updated timeout setting:"
-        grep "^set timeout=" "$GRUB_CONFIG_PATH" || echo "   No timeout setting found"
-        
+        # Unmount the JemaOS partition
+        umount "$JEMAOS_MOUNT_POINT" || {
+            echo "⚠️  Warning: Failed to unmount JemaOS partition"
+        }
     else
-        echo "⚠️  GRUB configuration not found: $GRUB_CONFIG_PATH"
-        echo "💡 Expected path: /efi/boot/grub.cfg"
-        echo "📋 Available files in /efi/boot/:"
-        ls -la "$JEMAOS_MOUNT_POINT/efi/boot/" 2>/dev/null || echo "   Directory not found"
+        echo "⚠️  JemaOS partition not mounted, skipping GRUB configuration update"
     fi
-    
-    # Unmount the JemaOS partition
-    umount "$JEMAOS_MOUNT_POINT" || {
-        echo "⚠️  Warning: Failed to unmount JemaOS partition"
-    }
-else
-    echo "⚠️  JemaOS partition not mounted, skipping GRUB configuration update"
-fi
 
-echo "✅ GRUB configuration update completed"
+    echo "✅ GRUB configuration update completed"
+else
+    echo "⏭️  Skipping GRUB configuration update (GRUB_TIMEOUT_MODE=false)"
+fi
 
 # =============================================================================
 # Step 4: Create 13th partition for rEFInd
@@ -719,7 +728,11 @@ echo "=================================================="
 echo "Main Config: /EFI/BOOT/refind.conf"
 echo "Startup Script: /startup.nsh"
 echo "Boot Loader: /EFI/BOOT/bootx64.efi"
-echo "GRUB Config: /efi/boot/grub.cfg (timeout updated to 0)"
+if [ "$GRUB_TIMEOUT_MODE" = "true" ]; then
+    echo "GRUB Config: /efi/boot/grub.cfg (timeout updated to ${GRUB_TIMEOUT_VALUE}s)"
+else
+    echo "GRUB Config: /efi/boot/grub.cfg (unchanged)"
+fi
 echo "Log Level: $REFIND_LOG_LEVEL (0=silent, 4=verbose)"
 echo ""
 echo "🚀 BOOT INSTRUCTIONS:"
@@ -729,7 +742,7 @@ echo "2. Boot from USB device (may require changing boot order in BIOS/UEFI)"
 echo "3. Select the 13th partition (rEFInd) in the boot menu"
 echo "4. rEFInd will automatically start and show available OS options"
 echo "5. Select 'Jema OS' to boot from the USB device"
-echo "6 Or select other detected operating systems from the menu"
+echo "6. Or select other detected operating systems from the menu"
 echo ""
 echo "⚙️  ADVANCED rEFInd OPTIONS:"
 echo "=================================================="
